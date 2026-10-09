@@ -13,7 +13,9 @@ coherent subsystem. It bundles the two MCAL modules:
 ```
 Core/
  ├── Dwt/
+ │   └── Tests/ (UnitTests, IntegrationTests)
  ├── Itm/
+ │   └── Tests/ (UnitTests, IntegrationTests)
  └── CMakeLists.txt
 ```
 ---
@@ -23,6 +25,20 @@ Core/
 - Centralized system-level configuration
 - Optional version reporting
 - Consistent error propagation
+- Shared trace enable (`DEMCR.TRCENA`) - deinitialization of one module keeps
+  trace enabled while the other one is still in use
+
+---
+
+## 🧪 Tests
+
+Both modules register host unit tests (RegMem + CMock) and integration tests on
+target (STM32U5 Nucleo boards), see `EmBi_Platform/CMake/UnitTesting` and
+`EmBi_Platform/CMake/IntegrationTesting`:
+```
+ctest --preset STM32U5A5xJ_UnitTest -L "Dwt|Itm"
+ctest --preset STM32U5A5xJ_IntegrationTest -L "Dwt|Itm"
+```
 
 ---
 

@@ -1,19 +1,29 @@
 /**
+ * \defgroup Itm Itm
+ * \brief Itm module
+ */
+
+/**
  * \author Mr.Nobody
  * \file Itm_Types.h
  * \ingroup Itm
  * \brief Instrumentation Trace Macrocell (ITM) module global types definition
  *
+ * This file contains the types definitions used across the module and are
+ * available for other modules through Port file.
+ *
  */
 
-#ifndef ITM_TYPES_H
-#define ITM_TYPES_H
+#ifndef ITM_ITM_TYPES_H
+#define ITM_ITM_TYPES_H
 /* ============================== INCLUDES ================================== */
 #include "stdint.h"                         /* Module types definition        */
 /* ========================== SYMBOLIC CONSTANTS ============================ */
 
 /** Null pointer definition */
-#define ITM_NULL_PTR                    ( ( void* ) 0u )
+#define ITM_NULL_PTR                        ( ( void* ) 0u )
+
+/* ========================== EXPORTED MACROS =============================== */
 
 /* ============================== TYPEDEFS ================================== */
 
@@ -46,14 +56,6 @@ typedef enum
 }   itm_FunctionState_t;
 
 
-/** Flag states enumeration */
-typedef enum
-{
-    ITM_FLAG_INACTIVE = 0u, /**< Inactive flag state */
-    ITM_FLAG_ACTIVE         /**< Active flag state   */
-}   itm_FlagState_t;
-
-
 /** Enumeration used to signal request processing state */
 typedef enum
 {
@@ -62,11 +64,19 @@ typedef enum
 }   itm_RequestState_t;
 
 
+/** Flag states enumeration */
+typedef enum
+{
+    ITM_FLAG_INACTIVE = 0u, /**< Inactive flag state */
+    ITM_FLAG_ACTIVE         /**< Active flag state   */
+}   itm_FlagState_t;
+
+
 /** Frequency values type represented in Hz */
 typedef uint32_t itm_FreqHz_t;
 
 
-/** \brief Type signaling Instruction Trace MMacrocell (ITM) communication ports */
+/** \brief Type signaling Instruction Trace Macrocell (ITM) communication ports */
 typedef enum
 {
     ITM_PORT_0 = 0, /**< ITM Port 0      */
@@ -105,6 +115,7 @@ typedef enum
 }   itm_Port_t;
 
 
+/** \brief ITM module configuration struct */
 typedef struct
 {
     itm_Port_t          PortId;         /**< ITM communication port identification             */
@@ -113,12 +124,9 @@ typedef struct
     itm_FreqHz_t        SwoClk;         /**< SWO communication clock in Hz                     */
 }   itm_Config_t;
 
-
-/* ========================== EXPORTED MACROS =============================== */
-
 /* ========================== EXPORTED VARIABLES ============================ */
 
 /* ========================= EXPORTED FUNCTIONS ============================= */
 
 
-#endif /* ITM_TYPES_H */
+#endif /* ITM_ITM_TYPES_H */

@@ -1,11 +1,11 @@
 /**
  * \author Mr.Nobody
- * \file Dwt.h
+ * \file Dwt.c
  * \ingroup Dwt
  * \brief Data Watchpoint and Trace Unit (DWT) module implementation file.
  *
  * # Cycle counter and profiling counters
- * The Cortex®-M55 DWT supports a cycle counter and profiling counters.
+ * The Cortex®-M33 DWT supports a cycle counter and profiling counters.
  *
  * # Cycle counter
  * When enabled in DWT_CTRL, the 32-bit cycle counter, DWT_CYCCNT, increments
@@ -45,11 +45,12 @@
  *
  * ## Fold Counter (DWT_FOLDCNT)
  * The 8-bit Fold Counter counts folded instructions and increments for every
- * instruction executed in zero cycles. All folded instructions are dual-issued.
- * For example, for a dual-issued pair of instructions, the counter increments
- * by one to reflect this.
+ * instruction executed in zero cycles.
  *
-
+ * # Trace enable (DEMCR.TRCENA)
+ * DWT and ITM share the global trace enable bit. Deinitialization of DWT keeps
+ * the bit set while ITM is enabled, so ITM keeps working.
+ *
  */
 /* ============================== INCLUDES ================================== */
 #include "Dwt.h"                            /* Self include                   */
@@ -70,6 +71,9 @@
 
 /** Value of patch version of SW module */
 #define DWT_PATCH_VERSION           ( 0u )
+
+/** Reset value of counters */
+#define DWT_COUNTER_RESET           ( 0u )
 
 /* =============================== MACROS =================================== */
 
@@ -99,22 +103,30 @@ dwt_ModuleVersion_t Dwt_Get_ModuleVersion( void )
 /**
  * \brief Initializes module Dwt
  *
- * This function shall call every necessary sub-module initialization function 
- * and set up all the necessary resources for the module to work. In case of
- * failure, the function shall handle it by itself and shall not be transferred
- * to AppMain layer.
+ * Enables trace unit, resets all counters and enables counters required by
+ * configuration.
+ *
+ * \param config [in]: Module configuration
+ *
+ * \return \ref DWT_REQUEST_OK if module was initialized, otherwise
+ *         \ref DWT_REQUEST_ERROR
  */
 dwt_RequestState_t Dwt_Init( dwt_Config_t * const config )
 {
-    dwt_RequestState_t retVal = DWT_REQUEST_OK;
+    dwt_RequestState_t retVal = DWT_REQUEST_ERROR;
 
     if( DWT_NULL_PTR != config )
     {
         /* Enable trace unit */
-        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+        DCB->DEMCR |= DCB_DEMCR_TRCENA_Msk;
 
-        /* Reset cycle counter */
-        DWT->CYCCNT = 0;
+        /* Reset all counters */
+        DWT->CYCCNT   = DWT_COUNTER_RESET;
+        DWT->CPICNT   = DWT_COUNTER_RESET;
+        DWT->EXCCNT   = DWT_COUNTER_RESET;
+        DWT->SLEEPCNT = DWT_COUNTER_RESET;
+        DWT->LSUCNT   = DWT_COUNTER_RESET;
+        DWT->FOLDCNT  = DWT_COUNTER_RESET;
 
         uint32_t regVal = 0u;
 
@@ -122,30 +134,54 @@ dwt_RequestState_t Dwt_Init( dwt_Config_t * const config )
         {
             regVal |= DWT_CTRL_CYCCNTENA_Msk;
         }
+        else
+        {
+            /* No action required */
+        }
 
         if( DWT_FUNCTION_ACTIVE == config->CpiCounterState )
         {
             regVal |= DWT_CTRL_CPIEVTENA_Msk;
+        }
+        else
+        {
+            /* No action required */
         }
 
         if( DWT_FUNCTION_ACTIVE == config->ExceptionCounterState )
         {
             regVal |= DWT_CTRL_EXCEVTENA_Msk;
         }
+        else
+        {
+            /* No action required */
+        }
 
         if( DWT_FUNCTION_ACTIVE == config->SleepCounterState )
         {
             regVal |= DWT_CTRL_SLEEPEVTENA_Msk;
+        }
+        else
+        {
+            /* No action required */
         }
 
         if( DWT_FUNCTION_ACTIVE == config->LoadStoreCounterState )
         {
             regVal |= DWT_CTRL_LSUEVTENA_Msk;
         }
+        else
+        {
+            /* No action required */
+        }
 
         if( DWT_FUNCTION_ACTIVE == config->FoldCounterState )
         {
             regVal |= DWT_CTRL_FOLDEVTENA_Msk;
+        }
+        else
+        {
+            /* No action required */
         }
 
         DWT->CTRL = regVal;
@@ -164,21 +200,26 @@ dwt_RequestState_t Dwt_Init( dwt_Config_t * const config )
 /**
  * \brief Deinitializes module Dwt
  *
- * This function shall call every necessary sub-module deinitialization function 
- * and free all the resources allocated by the module. In case of failure, the 
- * function shall handle it by itself and shall not be transferred to AppMain 
- * layer.
+ * Disables all counters and resets cycle counter. Trace unit is disabled only
+ * if ITM is not enabled (shared DEMCR.TRCENA bit).
  */
 void Dwt_Deinit( void )
 {
     /* Disable all counters */
-    DWT->CTRL = 0;
-
-    /* Disable trace unit */
-    CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL = 0u;
 
     /* Reset cycle counter */
-    DWT->CYCCNT = 0;
+    DWT->CYCCNT = DWT_COUNTER_RESET;
+
+    /* Disable trace unit, if not used by ITM */
+    if( 0u == ( ITM->TCR & ITM_TCR_ITMENA_Msk ) )
+    {
+        DCB->DEMCR &= ~DCB_DEMCR_TRCENA_Msk;
+    }
+    else
+    {
+        /* No action required */
+    }
 }
 
 
@@ -186,7 +227,7 @@ void Dwt_Deinit( void )
  * \brief Main task of module Dwt
  *
  * This function shall be called in the main loop of the application or the task
- * scheduler. It shall be called periodically, depending on the module's 
+ * scheduler. It shall be called periodically, depending on the module's
  * requirements.
  */
 void Dwt_Task( void )
@@ -196,12 +237,46 @@ void Dwt_Task( void )
 
 
 /**
+ * \brief Fills default configuration of the module
+ *
+ * Default configuration enables cycle counter only.
+ *
+ * \param config [out]: Configuration to be filled
+ *
+ * \return \ref DWT_REQUEST_OK if configuration was filled, otherwise
+ *         \ref DWT_REQUEST_ERROR
+ */
+dwt_RequestState_t Dwt_Get_DefaultConfig( dwt_Config_t * const config )
+{
+    dwt_RequestState_t retVal = DWT_REQUEST_ERROR;
+
+    if( DWT_NULL_PTR != config )
+    {
+        config->CycleCounterState     = DWT_FUNCTION_ACTIVE;
+        config->CpiCounterState       = DWT_FUNCTION_INACTIVE;
+        config->ExceptionCounterState = DWT_FUNCTION_INACTIVE;
+        config->SleepCounterState     = DWT_FUNCTION_INACTIVE;
+        config->LoadStoreCounterState = DWT_FUNCTION_INACTIVE;
+        config->FoldCounterState      = DWT_FUNCTION_INACTIVE;
+
+        retVal = DWT_REQUEST_OK;
+    }
+    else
+    {
+        retVal = DWT_REQUEST_ERROR;
+    }
+
+    return ( retVal );
+}
+
+
+/**
  * \brief Resets cycle counter.
  *
  */
 void Dwt_Reset_CycleCounter( void )
 {
-    DWT->CYCCNT = 0;
+    DWT->CYCCNT = DWT_COUNTER_RESET;
 }
 
 
@@ -212,7 +287,7 @@ void Dwt_Reset_CycleCounter( void )
  */
 dwt_CounterValue_t Dwt_Get_CycleCounter( void )
 {
-    dwt_CounterValue_t retVal = (dwt_CounterValue_t)DWT->CYCCNT;
+    dwt_CounterValue_t retVal = (dwt_CounterValue_t) DWT->CYCCNT;
 
     return ( retVal );
 }
@@ -224,7 +299,7 @@ dwt_CounterValue_t Dwt_Get_CycleCounter( void )
  */
 void Dwt_Reset_CpiCounter( void )
 {
-    DWT->CPICNT = 0;
+    DWT->CPICNT = DWT_COUNTER_RESET;
 }
 
 
@@ -247,7 +322,7 @@ dwt_CounterValue_t Dwt_Get_CpiCounter( void )
  */
 void Dwt_Reset_ExceptionCounter( void )
 {
-    DWT->EXCCNT = 0;
+    DWT->EXCCNT = DWT_COUNTER_RESET;
 }
 
 
@@ -270,7 +345,7 @@ dwt_CounterValue_t Dwt_Get_ExceptionCounter( void )
  */
 void Dwt_Reset_SleepCounter( void )
 {
-    DWT->SLEEPCNT = 0;
+    DWT->SLEEPCNT = DWT_COUNTER_RESET;
 }
 
 
@@ -293,7 +368,7 @@ dwt_CounterValue_t Dwt_Get_SleepCounter( void )
  */
 void Dwt_Reset_LoadStoreCounter( void )
 {
-    DWT->LSUCNT = 0;
+    DWT->LSUCNT = DWT_COUNTER_RESET;
 }
 
 
@@ -316,7 +391,7 @@ dwt_CounterValue_t Dwt_Get_LoadStoreCounter( void )
  */
 void Dwt_Reset_FoldCounter( void )
 {
-    DWT->FOLDCNT = 0;
+    DWT->FOLDCNT = DWT_COUNTER_RESET;
 }
 
 

@@ -27,6 +27,10 @@ Application code shall only include `Itm_Port.h`.
 - Synchronization enable/disable
 - Busy-state and transmit-state reporting
 - Simple initialization and deinitialization
+- Non-blocking transmission - data are dropped when ITM / port is disabled or the
+  port FIFO is not drained in time (no debugger with SWV connected)
+- STM32U5: SWO output configured in DBGMCU (trace clock, asynchronous trace pin)
+  and TPIU, SWO prescaler derived from core clock (HCLK) provided by `Rcc_Lib`
 
 ---
 
@@ -34,8 +38,15 @@ Application code shall only include `Itm_Port.h`.
 
 ### Initialization
 
-Itm_Init(itm_Config_t *config);  
-Itm_Deinit(void);
+itm_ModuleVersion_t Itm_Get_ModuleVersion(void);  
+itm_RequestState_t  Itm_Init(itm_Config_t *config);  
+void                Itm_Deinit(void);  
+itm_RequestState_t  Itm_Get_DefaultConfig(itm_Config_t *config);
+
+### Port Control
+
+itm_RequestState_t Itm_PortEnable(itm_Port_t port);  
+itm_RequestState_t Itm_PortDisable(itm_Port_t port);
 
 ### Timestamp Control
 
@@ -67,7 +78,11 @@ typedef struct
     itm_Port_t          PortId;
     itm_FunctionState_t TimestampState;
     itm_FunctionState_t SyncState;
+    itm_FreqHz_t        SwoClk;
 } itm_Config_t;
+
+Default configuration (`Itm_Get_DefaultConfig`): port 0, timestamps and sync
+disabled, SWO clock 2 MHz.
 
 ---
 

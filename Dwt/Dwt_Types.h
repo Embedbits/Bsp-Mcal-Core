@@ -1,4 +1,9 @@
 /**
+ * \defgroup Dwt Dwt
+ * \brief Dwt module
+ */
+
+/**
  * \author Mr.Nobody
  * \file Dwt_Types.h
  * \ingroup Dwt

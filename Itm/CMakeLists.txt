@@ -18,20 +18,20 @@ set( Itm_PrivateIncludeDirs
 
 # Source files list for current library generation
 set( Itm_SourceFiles
-    Itm.c 
+    Itm.c
 )
 
 
 # List of public header files provided by the current library
 set( Itm_PublicHeaders 
     Itm_Types.h
-    Itm_Port.h 
+    Itm_Port.h
 )
 
 
 # List of dependent libraries that are publicly used by the current library
 set( Itm_PublicDependentLibs
-     
+    
 )
 
 
@@ -80,10 +80,9 @@ target_include_directories( Itm_Lib
     PUBLIC
         $<BUILD_INTERFACE:${PUBLIC_HEADERS_DIR}>
         $<INSTALL_INTERFACE:include>
-        Itm_PublicIncludeDirs
+        ${Itm_PublicIncludeDirs}
     PRIVATE
-        ${Itm_IncludeDirs}
-        Itm_PrivateIncludeDirs
+        ${Itm_PrivateIncludeDirs}
 )
 
 
@@ -93,4 +92,14 @@ message(STATUS "Itm_Lib library created")
 #========================= Documentation configuration ========================#
 if(DOXYGEN_AVAILABLE STREQUAL "ON")
     Doxygen_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/")
+endif()
+
+#========================= Unit tests configuration ===========================#
+if(UNIT_TESTING_AVAILABLE STREQUAL "ON")
+    UnitTesting_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/Tests/UnitTests")
+endif()
+
+#===================== Integration tests configuration ========================#
+if(INTEGRATION_TESTING_AVAILABLE STREQUAL "ON")
+    IntegrationTesting_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/Tests/IntegrationTests")
 endif()
