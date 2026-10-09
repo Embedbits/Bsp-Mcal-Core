@@ -13,7 +13,9 @@ coherent subsystem. It bundles the two MCAL modules:
 ```
 Core/
  ├── Dwt/
+ │   └── Tests/ (UnitTests, IntegrationTests)
  ├── Itm/
+ │   └── Tests/ (UnitTests, IntegrationTests)
  └── CMakeLists.txt
 ```
 ---
@@ -23,6 +25,20 @@ Core/
 - Centralized system-level configuration
 - Optional version reporting
 - Consistent error propagation
+- Shared trace enable (`DEMCR.TRCENA`) - deinitialization of one module keeps
+  trace enabled while the other one is still in use
+
+---
+
+## 🧪 Tests
+
+Both modules register host unit tests (RegMem + CMock) and integration tests on
+target (NUCLEO-L432KC, NUCLEO-L4R5ZI and other L4 / L4+ Nucleo boards), see `EmBi_Platform/CMake/UnitTesting` and
+`EmBi_Platform/CMake/IntegrationTesting`:
+```
+ctest --preset STM32L432xC_UnitTest -L "Dwt|Itm"
+ctest --preset STM32L432xC_IntegrationTest -L "Dwt|Itm"
+```
 
 ---
 
@@ -69,4 +85,4 @@ Contributions are welcome! Please open a pull request.
 - [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html)
 - [Azure DevOps](https://azure.microsoft.com/en-us/services/devops/)
 - [Embedbits Github](https://github.com/Embedbits)
-- [CC BY-NC 4.0 License](https://creativecommons.org/licenses/by-nc/4.0/)
+- [CC BY-NC 4.0 License](https://creativecommons.org/licenses/by-nc/4.0/)
