@@ -1,10 +1,15 @@
 /**
+ * \defgroup Itm Itm
+ * \brief Itm module
+ */
+
+/**
  * \author Mr.Nobody
  * \file Itm_Types.h
  * \ingroup Itm
- * \brief Itm module global types definition
+ * \brief Instrumentation Trace Macrocell (ITM) module global types definition
  *
- * This file contains the types definitions used across the module and are 
+ * This file contains the types definitions used across the module and are
  * available for other modules through Port file.
  *
  */
@@ -71,7 +76,7 @@ typedef enum
 typedef uint32_t itm_FreqHz_t;
 
 
-/** \brief Type signaling Instruction Trace MMacrocell (ITM) communication ports */
+/** \brief Type signaling Instruction Trace Macrocell (ITM) communication ports */
 typedef enum
 {
     ITM_PORT_0 = 0, /**< ITM Port 0      */
@@ -110,6 +115,7 @@ typedef enum
 }   itm_Port_t;
 
 
+/** \brief ITM module configuration struct */
 typedef struct
 {
     itm_Port_t          PortId;         /**< ITM communication port identification             */

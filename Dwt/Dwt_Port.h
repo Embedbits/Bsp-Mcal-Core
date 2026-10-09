@@ -34,6 +34,8 @@ dwt_RequestState_t      Dwt_Init                        ( dwt_Config_t * const c
 void                    Dwt_Deinit                      ( void );
 void                    Dwt_Task                        ( void );
 
+dwt_RequestState_t      Dwt_Get_DefaultConfig           ( dwt_Config_t * const config );
+
 void                    Dwt_Reset_CycleCounter          ( void );
 dwt_CounterValue_t      Dwt_Get_CycleCounter            ( void );
 

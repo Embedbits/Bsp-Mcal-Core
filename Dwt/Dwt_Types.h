@@ -1,8 +1,13 @@
 /**
+ * \defgroup Dwt Dwt
+ * \brief Dwt module
+ */
+
+/**
  * \author Mr.Nobody
  * \file Dwt_Types.h
  * \ingroup Dwt
- * \brief Dwt module global types definition
+ * \brief Data Watchpoint and Trace Unit (DWT) module global types definition
  *
  * This file contains the types definitions used across the module and are 
  * available for other modules through Port file.

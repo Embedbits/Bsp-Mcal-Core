@@ -44,7 +44,8 @@ Application code shall only include `Dwt_Port.h`.
 
 dwt_RequestState_t Dwt_Init(dwt_Config_t *config);  
 void               Dwt_Deinit(void);  
-void               Dwt_Task(void);
+void               Dwt_Task(void);  
+dwt_RequestState_t Dwt_Get_DefaultConfig(dwt_Config_t *config);
 
 ### Module Version
 
@@ -83,6 +84,8 @@ typedef struct
     dwt_FunctionState_t LoadStoreCounterState;
     dwt_FunctionState_t FoldCounterState;
 } dwt_Config_t;
+
+Default configuration (`Dwt_Get_DefaultConfig`): cycle counter only.
 
 ---
 

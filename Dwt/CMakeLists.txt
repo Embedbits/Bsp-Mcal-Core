@@ -79,10 +79,9 @@ target_include_directories( Dwt_Lib
     PUBLIC
         $<BUILD_INTERFACE:${PUBLIC_HEADERS_DIR}>
         $<INSTALL_INTERFACE:include>
-        Dwt_PublicIncludeDirs
+        ${Dwt_PublicIncludeDirs}
     PRIVATE
-        ${Dwt_IncludeDirs}
-        Dwt_PrivateIncludeDirs
+        ${Dwt_PrivateIncludeDirs}
 )
 
 
@@ -92,4 +91,14 @@ message(STATUS "Dwt_Lib library created")
 #========================= Documentation configuration ========================#
 if(DOXYGEN_AVAILABLE STREQUAL "ON")
     Doxygen_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/")
+endif()
+
+#========================= Unit tests configuration ===========================#
+if(UNIT_TESTING_AVAILABLE STREQUAL "ON")
+    UnitTesting_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/Tests/UnitTests")
+endif()
+
+#===================== Integration tests configuration ========================#
+if(INTEGRATION_TESTING_AVAILABLE STREQUAL "ON")
+    IntegrationTesting_AddPath("${CMAKE_CURRENT_SOURCE_DIR}/Tests/IntegrationTests")
 endif()
