@@ -7,13 +7,19 @@ coherent subsystem. It bundles the two MCAL modules:
 - DWT – performance counters  
 - ITM – trace stimulus ports  
 
+The STM32H7 branch covers all STM32H7 lines incl. STM32H7R3 / H7R7 / H7S3 / H7S7 (Ral family STM32H7RS). ITM enables
+the trace clock (TRACECLKEN) and the debug clock (DBGCKEN) of STM32H7R / H7S DBGMCU instead of the trace port and
+D1 / D3 debug clocks.  
+
 ---
 
 ## 🧩 Architecture Overview
 ```
 Core/
  ├── Dwt/
+ │   └── Tests/ (UnitTests, IntegrationTests)
  ├── Itm/
+ │   └── Tests/ (UnitTests, IntegrationTests)
  └── CMakeLists.txt
 ```
 ---
@@ -23,6 +29,20 @@ Core/
 - Centralized system-level configuration
 - Optional version reporting
 - Consistent error propagation
+- Shared trace enable (`DEMCR.TRCENA`) - deinitialization of one module keeps
+  trace enabled while the other one is still in use
+
+---
+
+## 🧪 Tests
+
+Both modules register host unit tests (RegMem + CMock) and integration tests on
+target (STM32H7 Nucleo boards), see `EmBi_Platform/CMake/UnitTesting` and
+`EmBi_Platform/CMake/IntegrationTesting`:
+```
+ctest --preset STM32H743xI_UnitTest -L "Dwt|Itm"
+ctest --preset STM32H743xI_IntegrationTest -L "Dwt|Itm"
+```
 
 ---
 
