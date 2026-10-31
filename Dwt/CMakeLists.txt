@@ -6,7 +6,7 @@
 #======================== Library configuration ===============================#
 # Publicly included directories to provide headers include
 set( Dwt_PublicIncludeDirs
-    
+
 )
 
 
@@ -23,7 +23,7 @@ set( Dwt_SourceFiles
 
 
 # List of public header files provided by the current library
-set( Dwt_PublicHeaders 
+set( Dwt_PublicHeaders
     Dwt_Types.h
     Dwt_Port.h
 )
@@ -31,7 +31,7 @@ set( Dwt_PublicHeaders
 
 # List of dependent libraries that are publicly used by the current library
 set( Dwt_PublicDependentLibs
-    
+
 )
 
 
@@ -48,9 +48,9 @@ add_library(Dwt_Lib STATIC ${Dwt_SourceFiles})
 
 # Include necessary libraries to the target
 target_link_libraries( Dwt_Lib
-    PUBLIC 
-        ${Dwt_PublicDependentLibs} 
-    PRIVATE 
+    PUBLIC
+        ${Dwt_PublicDependentLibs}
+    PRIVATE
         ${Dwt_PrivateDependentLibs}
 )
 
@@ -63,14 +63,14 @@ file(MAKE_DIRECTORY ${PUBLIC_HEADERS_DIR})
 
 # Process all public headers
 foreach(PublicHeader IN LISTS Dwt_PublicHeaders)
-    
+
     # Copy (or configure) only the public header there
     configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/${PublicHeader} 
+        ${CMAKE_CURRENT_SOURCE_DIR}/${PublicHeader}
         ${PUBLIC_HEADERS_DIR}/${PublicHeader}
         COPYONLY
     )
-    
+
 endforeach()
 
 
