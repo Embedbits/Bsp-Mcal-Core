@@ -290,6 +290,29 @@ void Ut_Itm_Init_RccError_ReturnsError( void )
     TEST_ASSERT_EQUAL_HEX32( 0u, UT_ITM_SWTF_CTRL );
 }
 
+/**
+ * \brief   Itm_Init() fails when the trace clock is 0 Hz (its source is stopped, AB#2245).
+ *
+ * \par Expected results
+ * - ITM_REQUEST_ERROR, ITM stays disabled, DBGMCU / SWO / SWTF not configured.
+ */
+void Ut_Itm_Init_TraceClkZero_ReturnsError( void )
+{
+    itm_Config_t config      = Ut_Itm_Get_Config( ITM_PORT_0, UT_ITM_SWO_CLK_HZ );
+    rcc_FreqHz_t traceClkRet = 0u;
+
+    Rcc_Get_PeriphClk_ExpectAndReturn( RCC_PERIPH_TRACE, NULL, RCC_REQUEST_OK );
+    Rcc_Get_PeriphClk_IgnoreArg_periphClk();
+    Rcc_Get_PeriphClk_ReturnThruPtr_periphClk( &traceClkRet );
+
+    TEST_ASSERT_EQUAL( ITM_REQUEST_ERROR, Itm_Init( &config ) );
+
+    TEST_ASSERT_EQUAL_HEX32( 0u, ITM->TCR );
+    TEST_ASSERT_EQUAL_HEX32( 0u, DBGMCU->CR );
+    TEST_ASSERT_EQUAL_UINT32( 0u, UT_ITM_SWO_CODR );
+    TEST_ASSERT_EQUAL_HEX32( 0u, UT_ITM_SWTF_CTRL );
+}
+
 /* =========================== DEINITIALIZATION ============================= */
 
 /**

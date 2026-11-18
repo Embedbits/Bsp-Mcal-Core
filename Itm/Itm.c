@@ -497,7 +497,8 @@ itm_FlagState_t Itm_Get_BusyState( void )
  * \param swoClk [in]: Required SWO communication clock in Hz
  *
  * \return \ref ITM_REQUEST_OK if SWO was configured, \ref ITM_REQUEST_ERROR if
- *         trace clock is not available
+ *         trace clock is not available (request failed or trace clock 0 Hz - its source is
+ *         stopped, AB#2245)
  */
 static itm_RequestState_t Itm_Set_SwoConfig( itm_FreqHz_t swoClk )
 {
@@ -505,7 +506,8 @@ static itm_RequestState_t Itm_Set_SwoConfig( itm_FreqHz_t swoClk )
     rcc_FreqHz_t             traceClk = 0u;
     const rcc_RequestState_t clkState = Rcc_Get_PeriphClk( RCC_PERIPH_TRACE, &traceClk );
 
-    if( RCC_REQUEST_OK == clkState )
+    if( ( RCC_REQUEST_OK == clkState ) &&
+        ( 0u             <  traceClk )    )
     {
 #if defined(STM32H7RS)
         /* Trace port clock and debug clock (one debug clock enable on STM32H7R / H7S) */

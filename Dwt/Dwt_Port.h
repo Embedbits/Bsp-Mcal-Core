@@ -4,7 +4,7 @@
  * \ingroup Dwt
  * \brief Data Watchpoint and Trace Unit (DWT) module public functionality
  *
- * This file contains all available public functionality, any other files shall 
+ * This file contains all available public functionality, any other files shall
  * not used outside of the module.
  *
  */
@@ -38,6 +38,10 @@ dwt_RequestState_t      Dwt_Get_DefaultConfig           ( dwt_Config_t * const c
 
 void                    Dwt_Reset_CycleCounter          ( void );
 dwt_CounterValue_t      Dwt_Get_CycleCounter            ( void );
+dwt_RequestState_t      Dwt_Get_State                   ( dwt_FunctionState_t * const state );
+dwt_RequestState_t      Dwt_Get_CycleFrequency          ( dwt_Frequency_Hz_t * const freq );
+dwt_RequestState_t      Dwt_Get_ElapsedTime_us          ( dwt_CounterValue_t startCycle,
+                                                          dwt_Time_us_t * const elapsed );
 
 void                    Dwt_Reset_CpiCounter            ( void );
 dwt_CounterValue_t      Dwt_Get_CpiCounter              ( void );

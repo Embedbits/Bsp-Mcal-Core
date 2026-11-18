@@ -34,7 +34,8 @@ Application code shall only include `Dwt_Port.h`.
 - Runtime counter read and reset functionality
 - Module version information
 - Cortex-M7 (STM32H7): DWT CoreSight software lock unlocked by `Dwt_Init()` (cycle
-  counter runs also without debugger)
+  counter runs also without debugger); the Cortex-M4 of the dual-core lines has no
+  software lock
 - Minimal hardware coupling
 - No global state exposed
 
@@ -52,6 +53,12 @@ dwt_RequestState_t Dwt_Get_DefaultConfig(dwt_Config_t *config);
 ### Module Version
 
 dwt_ModuleVersion_t Dwt_Get_ModuleVersion(void);
+
+### Time base (cycle counter as a clock for other modules)
+
+dwt_RequestState_t Dwt_Get_State(dwt_FunctionState_t *state);
+dwt_RequestState_t Dwt_Get_CycleFrequency(dwt_Frequency_Hz_t *freq);
+dwt_RequestState_t Dwt_Get_ElapsedTime_us(dwt_CounterValue_t startCycle, dwt_Time_us_t *elapsed);
 
 ### Counter APIs
 
@@ -74,6 +81,49 @@ void               Dwt_Reset_FoldCounter(void);
 dwt_CounterValue_t Dwt_Get_FoldCounter(void);
 
 ---
+
+## Time base for other modules
+
+Modules that have to wait for a start-up or settling time (OpAmp, Comp, ...)
+measure the wait with the cycle counter instead of counting calls of their
+`<Mod>_Task`:
+
+1. `Dwt_Get_State` tells whether the cycle counter runs (DEMCR.TRCENA and
+   DWT_CTRL.CYCCNTENA set). A module that needs the time base returns its error
+   value from `<Mod>_Init` when the counter does not run. The getter has no
+   side effects.
+2. At the start of the wait the module stores `Dwt_Get_CycleCounter()`.
+3. `Dwt_Get_ElapsedTime_us( startCycle, &elapsed )` returns the time since the
+   stored value in microseconds. The difference is computed in unsigned 32-bit
+   arithmetic, so one wrap-around of the counter is handled. The result is
+   truncated (rounded down) to whole microseconds and saturates at 2^32 - 1.
+   The function returns `DWT_REQUEST_ERROR` when the counter does not run or
+   the pointer is NULL.
+4. `Dwt_Get_CycleFrequency` returns the frequency of the counter (the clock of
+   the core) in Hz. It returns `DWT_REQUEST_ERROR` when the counter does not run.
+
+### Source of the frequency
+
+The cycle counter runs with the clock of the core: the CPU clock of the
+Cortex-M7, HCLK of the Cortex-M4 of the dual-core lines. The frequency is taken
+from the CMSIS variable `SystemCoreClock` of the core, so Dwt does not call the
+Rcc API (the variable itself is defined in `Rcc.c`, therefore a firmware that
+uses these getters has to link Rcc, which every platform build does). Rcc
+refreshes `SystemCoreClock` in `Rcc_Init`, in `Rcc_Set_OscDiv` (HSI divider) and
+at the change of the AHB divider; after a change of the clock done without the
+Rcc module the elapsed time is computed with the old frequency until the
+variable is updated.
+
+### Rules for the users of the time base
+
+- Nobody shall call `Dwt_Reset_CycleCounter` (or `Dwt_Deinit`) while another module
+  measures a wait: the stored start value would no longer match the counter.
+- CYCCNT stops while the core clock is stopped (Sleep, Stop): the measured waits
+  get longer, never shorter, so a start-up time is never cut short.
+- The counter wraps after 2^32 cycles (about 7.8 s at 550 MHz). A wait longer than
+  that cannot be measured; start-up and settling waits are some microseconds.
+- The counter also stops in debug halt; a breakpoint in the middle of a wait
+  prolongs it.
 
 ## ⚙️ Configuration Structure
 

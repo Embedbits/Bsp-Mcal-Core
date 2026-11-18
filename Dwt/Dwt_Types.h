@@ -1,17 +1,17 @@
 /**
- * \defgroup Dwt Dwt
- * \brief Dwt module
- */
-
-/**
  * \author Mr.Nobody
  * \file Dwt_Types.h
  * \ingroup Dwt
  * \brief Data Watchpoint and Trace Unit (DWT) module global types definition
  *
- * This file contains the types definitions used across the module and are 
+ * This file contains the types definitions used across the module and are
  * available for other modules through Port file.
  *
+ */
+
+/**
+ * \defgroup Dwt Dwt
+ * \brief Dwt module
  */
 
 #ifndef DWT_DWT_TYPES_H
@@ -74,6 +74,14 @@ typedef enum
 
 /** \brief Type used for DWT counter values */
 typedef uint32_t dwt_CounterValue_t;
+
+
+/** \brief Type used for the frequency of the cycle counter in Hz */
+typedef uint32_t dwt_Frequency_Hz_t;
+
+
+/** \brief Type used for time measured by the cycle counter in microseconds */
+typedef uint32_t dwt_Time_us_t;
 
 
 /**

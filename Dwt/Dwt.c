@@ -47,7 +47,8 @@
  * # Software lock (Cortex-M7)
  * DWT of Cortex-M7 has the CoreSight software lock - without the unlock key in
  * DWT_LAR the counters can not be written (and the cycle counter does not run
- * without a debugger which unlocks the lock itself).
+ * without a debugger which unlocks the lock itself). DWT of the Cortex-M4 of the
+ * dual-core lines (project of the Cortex-M4 core) has no software lock.
  *
  */
 /* ============================== INCLUDES ================================== */
@@ -65,7 +66,7 @@
 #define DWT_MAJOR_VERSION           ( 1u )
 
 /** Value of minor version of SW module */
-#define DWT_MINOR_VERSION           ( 0u )
+#define DWT_MINOR_VERSION           ( 1u )
 
 /** Value of patch version of SW module */
 #define DWT_PATCH_VERSION           ( 0u )
@@ -76,9 +77,18 @@
 /** CoreSight software lock key unlocking write access to DWT registers */
 #define DWT_LAR_UNLOCK_KEY          ( 0xC5ACCE55u )
 
+/** Number of microseconds in one second */
+#define DWT_US_PER_S                ( 1000000ull )
+
+/** Maximal value of time in microseconds (saturation of the conversion) */
+#define DWT_TIME_US_MAX             ( 0xFFFFFFFFu )
+
 /* =============================== MACROS =================================== */
 
 /* ========================== EXPORTED VARIABLES ============================ */
+
+/** CMSIS core clock of the core in Hz, maintained by the Rcc module */
+extern uint32_t SystemCoreClock;
 
 /* =========================== LOCAL VARIABLES ============================== */
 
@@ -121,8 +131,10 @@ dwt_RequestState_t Dwt_Init( dwt_Config_t * const config )
         /* Enable trace unit */
         CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 
-        /* Unlock write access to DWT registers (CoreSight software lock) */
+        /* Unlock write access to DWT registers (CoreSight software lock of the Cortex-M7) */
+#if (__CORTEX_M == 7U)
         DWT->LAR = DWT_LAR_UNLOCK_KEY;
+#endif
 
         /* Reset all counters */
         DWT->CYCCNT   = DWT_COUNTER_RESET;
@@ -292,6 +304,126 @@ void Dwt_Reset_CycleCounter( void )
 dwt_CounterValue_t Dwt_Get_CycleCounter( void )
 {
     dwt_CounterValue_t retVal = (dwt_CounterValue_t) DWT->CYCCNT;
+
+    return ( retVal );
+}
+
+
+/**
+ * \brief Returns whether the cycle counter runs.
+ *
+ * The counter runs when the trace unit is enabled (DEMCR.TRCENA) and the cycle
+ * counter is enabled (DWT_CTRL.CYCCNTENA). No register is changed.
+ *
+ * \param state [out]: \ref DWT_FUNCTION_ACTIVE when the cycle counter runs,
+ *                     otherwise \ref DWT_FUNCTION_INACTIVE
+ *
+ * \return \ref DWT_REQUEST_OK if the state was filled, otherwise
+ *         \ref DWT_REQUEST_ERROR (NULL pointer)
+ */
+dwt_RequestState_t Dwt_Get_State( dwt_FunctionState_t * const state )
+{
+    dwt_RequestState_t retVal = DWT_REQUEST_ERROR;
+
+    if( DWT_NULL_PTR != state )
+    {
+        if( ( 0u != ( CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk ) ) &&
+            ( 0u != ( DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk )            )    )
+        {
+            *state = DWT_FUNCTION_ACTIVE;
+        }
+        else
+        {
+            *state = DWT_FUNCTION_INACTIVE;
+        }
+
+        retVal = DWT_REQUEST_OK;
+    }
+    else
+    {
+        retVal = DWT_REQUEST_ERROR;
+    }
+
+    return ( retVal );
+}
+
+
+/**
+ * \brief Returns frequency of the cycle counter.
+ *
+ * The cycle counter runs with the clock of the core (Cortex-M7: the CPU clock, Cortex-M4 of the
+ * dual-core lines: HCLK). The value is taken from the CMSIS variable SystemCoreClock of the core,
+ * which the Rcc module maintains, so the module does not depend on Rcc API.
+ *
+ * \param freq [out]: Frequency of the cycle counter in Hz
+ *
+ * \return \ref DWT_REQUEST_OK if the frequency was filled, otherwise
+ *         \ref DWT_REQUEST_ERROR (NULL pointer, cycle counter does not run or
+ *         core clock unknown)
+ */
+dwt_RequestState_t Dwt_Get_CycleFrequency( dwt_Frequency_Hz_t * const freq )
+{
+    dwt_RequestState_t  retVal   = DWT_REQUEST_ERROR;
+    dwt_FunctionState_t state    = DWT_FUNCTION_INACTIVE;
+    dwt_RequestState_t  getState = Dwt_Get_State( &state );
+
+    if( ( DWT_NULL_PTR        != freq            ) &&
+        ( DWT_REQUEST_OK      == getState        ) &&
+        ( DWT_FUNCTION_ACTIVE == state           ) &&
+        ( 0u                  != SystemCoreClock )    )
+    {
+        *freq  = (dwt_Frequency_Hz_t) SystemCoreClock;
+        retVal = DWT_REQUEST_OK;
+    }
+    else
+    {
+        retVal = DWT_REQUEST_ERROR;
+    }
+
+    return ( retVal );
+}
+
+
+/**
+ * \brief Returns time elapsed since the given value of the cycle counter.
+ *
+ * The difference is computed in unsigned 32-bit arithmetic, so one wrap-around
+ * of the counter between the start and now is handled. A longer interval than
+ * 2^32 cycles cannot be detected. The result saturates at the maximal value.
+ *
+ * \param startCycle [in]: Value of the cycle counter at the start of the measurement
+ * \param elapsed    [out]: Elapsed time in microseconds
+ *
+ * \return \ref DWT_REQUEST_OK if the time was filled, otherwise
+ *         \ref DWT_REQUEST_ERROR (NULL pointer or cycle counter does not run)
+ */
+dwt_RequestState_t Dwt_Get_ElapsedTime_us( dwt_CounterValue_t startCycle, dwt_Time_us_t * const elapsed )
+{
+    dwt_RequestState_t retVal  = DWT_REQUEST_ERROR;
+    dwt_Frequency_Hz_t freq    = 0u;
+    dwt_RequestState_t freqReq = Dwt_Get_CycleFrequency( &freq );
+
+    if( ( DWT_NULL_PTR   != elapsed ) &&
+        ( DWT_REQUEST_OK == freqReq )    )
+    {
+        const dwt_CounterValue_t cycles = (dwt_CounterValue_t) ( Dwt_Get_CycleCounter() - startCycle );
+        const uint64_t           timeUs = ( (uint64_t) cycles * DWT_US_PER_S ) / (uint64_t) freq;
+
+        if( timeUs > (uint64_t) DWT_TIME_US_MAX )
+        {
+            *elapsed = (dwt_Time_us_t) DWT_TIME_US_MAX;
+        }
+        else
+        {
+            *elapsed = (dwt_Time_us_t) timeUs;
+        }
+
+        retVal = DWT_REQUEST_OK;
+    }
+    else
+    {
+        retVal = DWT_REQUEST_ERROR;
+    }
 
     return ( retVal );
 }
